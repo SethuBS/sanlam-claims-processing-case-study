@@ -47,9 +47,14 @@ public class OutboxEvent {
         this.occurredAt = occurredAt;
     }
 
+    public void markPublished(Instant timestamp) {
+        this.publishedAt = timestamp;
+    }
+
     public UUID getId() { return id; }
     public String getEventType() { return eventType; }
     public UUID getAggregateId() { return aggregateId; }
     public String getPayload() { return payload; }
     public Instant getOccurredAt() { return occurredAt; }
+    public Instant getPublishedAt() { return publishedAt; }
 }

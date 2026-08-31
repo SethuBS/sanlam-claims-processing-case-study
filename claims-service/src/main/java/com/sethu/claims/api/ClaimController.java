@@ -55,7 +55,7 @@ public class ClaimController {
 
     @GetMapping("/{claimId}")
     public ClaimResponse get(@PathVariable UUID claimId) {
-        return ClaimResponse.from(claimService.process(claimId));
+        return ClaimResponse.from(claimService.get(claimId));
     }
 
     @PostMapping("/{claimId}/decisions/approve")

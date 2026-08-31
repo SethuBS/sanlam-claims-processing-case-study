@@ -105,6 +105,12 @@ public class ClaimService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public Claim get(UUID claimId) {
+        return claimRepository.findById(claimId)
+                .orElseThrow(() -> new IllegalArgumentException("Claim not found: " + claimId));
+    }
+
     @Transactional
     public Claim process(UUID claimId) {
         Claim claim = claimRepository.findById(claimId)

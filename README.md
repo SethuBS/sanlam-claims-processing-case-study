@@ -67,7 +67,7 @@ sanlam-claims-processing-case-study/
 
 ## Run locally
 
-The repository includes a Gradle wrapper. Java 17 is required.
+Java 17 is required. The repository includes the Gradle wrapper configuration; if your environment does not have the wrapper script yet, run `gradle wrapper --gradle-version 8.14.3` once, then use `./gradlew`.
 
 ```bash
 ./gradlew clean test
