@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: claims-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/claims}
+    username: ${SPRING_DATASOURCE_USERNAME:claims}
+    password: ${SPRING_DATASOURCE_PASSWORD:claims}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+server:
+  port: ${SERVER_PORT:8080}
+
+clients:
+  client-registry:
+    base-url: ${CLIENT_REGISTRY_BASE_URL:http://localhost:8081}
+  policy-manager:
+    base-url: ${POLICY_MANAGER_BASE_URL:http://localhost:8082}
+  payment-system:
+    base-url: ${PAYMENT_SYSTEM_BASE_URL:http://localhost:8083}

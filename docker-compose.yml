@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: claims
+      POSTGRES_USER: claims
+      POSTGRES_PASSWORD: claims
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U claims -d claims"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mock-client-registry:
+    build: ./mock-client-registry
+    environment:
+      SERVER_PORT: 8081
+    ports:
+      - "8081:8081"
+
+  mock-policy-manager:
+    build: ./mock-policy-manager
+    environment:
+      SERVER_PORT: 8082
+    ports:
+      - "8082:8082"
+
+  mock-payment-system:
+    build: ./mock-payment-system
+    environment:
+      SERVER_PORT: 8083
+      CLAIMS_CALLBACK_URL: http://host.docker.internal:8080/internal/v1/payment-status-events
+    ports:
+      - "8083:8083"
+
+  claims-service:
+    build: ./claims-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mock-client-registry:
+        condition: service_started
+      mock-policy-manager:
+        condition: service_started
+      mock-payment-system:
+        condition: service_started
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/claims
+      SPRING_DATASOURCE_USERNAME: claims
+      SPRING_DATASOURCE_PASSWORD: claims
+      CLIENT_REGISTRY_BASE_URL: http://mock-client-registry:8081
+      POLICY_MANAGER_BASE_URL: http://mock-policy-manager:8082
+      PAYMENT_SYSTEM_BASE_URL: http://mock-payment-system:8083
+    ports:
+      - "8080:8080"

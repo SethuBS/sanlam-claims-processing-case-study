@@ -1,0 +1,13 @@
+{
+  "externalReference": "WEB-000123",
+  "claimType": "DEATH",
+  "clientId": "CLIENT-10542",
+  "policyNumber": "POL-847563",
+  "incidentDate": "2026-08-31",
+  "submittedAt": "2026-08-31T08:15:31Z",
+  "amount": {
+    "currency": "ZAR",
+    "value": 250000.00
+  },
+  "channel": "WEB"
+}

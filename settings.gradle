@@ -1,0 +1,6 @@
+rootProject.name = 'sanlam-claims-processing-case-study'
+
+include 'claims-service'
+include 'mock-client-registry'
+include 'mock-policy-manager'
+include 'mock-payment-system'
