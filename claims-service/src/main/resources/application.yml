@@ -21,3 +21,13 @@ clients:
     base-url: ${POLICY_MANAGER_BASE_URL:http://localhost:8082}
   payment-system:
     base-url: ${PAYMENT_SYSTEM_BASE_URL:http://localhost:8083}
+
+security:
+  payment-callback:
+    secret: ${PAYMENT_CALLBACK_SECRET:local-development-callback-secret}
+    max-age: ${PAYMENT_CALLBACK_MAX_AGE:5m}
+
+payment:
+  reconciliation:
+    poll-delay-ms: ${PAYMENT_RECONCILIATION_POLL_DELAY_MS:5000}
+    minimum-age: ${PAYMENT_RECONCILIATION_MINIMUM_AGE:5s}

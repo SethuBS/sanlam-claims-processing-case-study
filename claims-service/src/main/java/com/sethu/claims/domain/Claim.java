@@ -165,6 +165,14 @@ public class Claim {
         this.updatedAt = timestamp;
     }
 
+    public void markPaymentFailed(Instant timestamp) {
+        if (status != ClaimStatus.PAYMENT_PENDING) {
+            throw new IllegalStateException("Claim is not waiting for payment");
+        }
+        status = ClaimStatus.PAYMENT_FAILED;
+        updatedAt = timestamp;
+    }
+
     private void validateTransition(ClaimStatus nextStatus) {
         if (status == ClaimStatus.RECEIVED && nextStatus == ClaimStatus.VALIDATING) {
             return;

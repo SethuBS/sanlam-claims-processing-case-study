@@ -34,6 +34,13 @@ public class PaymentSystemClient {
                 .body(PaymentAccepted.class);
     }
 
+    public PaymentStatus getPayment(UUID claimId) {
+        return client.get()
+                .uri("/api/v1/payments/by-claim/{claimId}", claimId)
+                .retrieve()
+                .body(PaymentStatus.class);
+    }
+
     public record PaymentRequest(UUID claimId, BigDecimal amount, String currency) {
     }
 
@@ -41,5 +48,8 @@ public class PaymentSystemClient {
             String paymentReference,
             String status
     ) {
+    }
+
+    public record PaymentStatus(String paymentReference, String status) {
     }
 }

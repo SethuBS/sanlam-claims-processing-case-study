@@ -12,6 +12,7 @@ import com.sethu.claims.repository.IdempotencyRecord;
 import com.sethu.claims.repository.IdempotencyRecordRepository;
 import com.sethu.claims.repository.OutboxEvent;
 import com.sethu.claims.repository.OutboxEventRepository;
+import com.sethu.claims.repository.ProcessedPaymentEventRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +42,7 @@ class ClaimServiceTest {
     @Mock ClaimRepository claimRepository;
     @Mock IdempotencyRecordRepository idempotencyRepository;
     @Mock OutboxEventRepository outboxRepository;
+    @Mock ProcessedPaymentEventRepository processedPaymentEventRepository;
     @Mock ClientRegistryClient clientRegistryClient;
     @Mock PolicyManagerClient policyManagerClient;
     @Mock PaymentSystemClient paymentSystemClient;
@@ -53,6 +55,7 @@ class ClaimServiceTest {
                 claimRepository,
                 idempotencyRepository,
                 outboxRepository,
+                processedPaymentEventRepository,
                 clientRegistryClient,
                 policyManagerClient,
                 paymentSystemClient,

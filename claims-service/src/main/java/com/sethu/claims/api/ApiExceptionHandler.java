@@ -1,5 +1,6 @@
 package com.sethu.claims.api;
 
+import com.sethu.claims.security.PaymentCallbackAuthenticationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -7,6 +8,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(PaymentCallbackAuthenticationException.class)
+    ProblemDetail handlePaymentCallbackAuthentication(
+            PaymentCallbackAuthenticationException exception
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNAUTHORIZED, exception.getMessage()
+        );
+        problem.setTitle(HttpStatus.UNAUTHORIZED.getReasonPhrase());
+        problem.setProperty("code", "PAYMENT_CALLBACK_UNAUTHENTICATED");
+        return problem;
+    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     ProblemDetail handleIllegalArgument(IllegalArgumentException exception) {

@@ -12,6 +12,7 @@ import com.sethu.claims.repository.IdempotencyRecord;
 import com.sethu.claims.repository.IdempotencyRecordRepository;
 import com.sethu.claims.repository.OutboxEvent;
 import com.sethu.claims.repository.OutboxEventRepository;
+import com.sethu.claims.repository.ProcessedPaymentEventRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,7 @@ public class ClaimService {
     private final ClaimRepository claimRepository;
     private final IdempotencyRecordRepository idempotencyRecordRepository;
     private final OutboxEventRepository outboxEventRepository;
+    private final ProcessedPaymentEventRepository processedPaymentEventRepository;
     private final ClientRegistryClient clientRegistryClient;
     private final PolicyManagerClient policyManagerClient;
     private final PaymentSystemClient paymentSystemClient;
@@ -40,6 +42,7 @@ public class ClaimService {
             ClaimRepository claimRepository,
             IdempotencyRecordRepository idempotencyRecordRepository,
             OutboxEventRepository outboxEventRepository,
+            ProcessedPaymentEventRepository processedPaymentEventRepository,
             ClientRegistryClient clientRegistryClient,
             PolicyManagerClient policyManagerClient,
             PaymentSystemClient paymentSystemClient,
@@ -49,6 +52,7 @@ public class ClaimService {
         this.claimRepository = claimRepository;
         this.idempotencyRecordRepository = idempotencyRecordRepository;
         this.outboxEventRepository = outboxEventRepository;
+        this.processedPaymentEventRepository = processedPaymentEventRepository;
         this.clientRegistryClient = clientRegistryClient;
         this.policyManagerClient = policyManagerClient;
         this.paymentSystemClient = paymentSystemClient;
@@ -187,6 +191,33 @@ public class ClaimService {
                 .orElseThrow(() -> new IllegalArgumentException("Claim not found: " + claimId));
         claim.markPaid(paymentReference, clock.instant());
         return claimRepository.save(claim);
+    }
+
+    @Transactional
+    public boolean handlePaymentStatusEvent(
+            UUID eventId,
+            UUID claimId,
+            String paymentReference,
+            String status
+    ) {
+        int registered = processedPaymentEventRepository.registerIfNew(
+                eventId, claimId, clock.instant()
+        );
+        if (registered == 0) {
+            return false;
+        }
+
+        Claim claim = claimRepository.findById(claimId)
+                .orElseThrow(() -> new IllegalArgumentException("Claim not found: " + claimId));
+        if ("COMPLETED".equals(status)) {
+            claim.markPaid(paymentReference, clock.instant());
+        } else if ("FAILED".equals(status)) {
+            claim.markPaymentFailed(clock.instant());
+        } else {
+            throw new IllegalArgumentException("Unsupported payment status: " + status);
+        }
+        claimRepository.save(claim);
+        return true;
     }
 
     private String payload(Claim claim) {

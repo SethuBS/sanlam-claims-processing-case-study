@@ -24,6 +24,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaymentAccepted'
+  /api/v1/payments/by-claim/{claimId}:
+    get:
+      operationId: findPaymentByClaim
+      parameters:
+        - in: path
+          name: claimId
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Current payment result used for reconciliation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentAccepted'
+        '404':
+          description: No payment exists for the claim
 components:
   schemas:
     PaymentRequest:

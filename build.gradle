@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.14' apply false
     id 'io.spring.dependency-management' version '1.1.7' apply false
+    id 'org.owasp.dependencycheck' version '12.2.2'
 }
 
 allprojects {
@@ -13,6 +14,17 @@ allprojects {
     }
 }
 
+dependencyCheck {
+    failBuildOnCVSS = 7.0
+    failOnError = true
+    formats = ['HTML', 'SARIF']
+
+    String configuredNvdApiKey = System.getenv('NVD_API_KEY')
+    if (configuredNvdApiKey != null && !configuredNvdApiKey.isBlank()) {
+        nvd.apiKey = configuredNvdApiKey
+    }
+}
+
 subprojects {
     apply plugin: 'java'
     apply plugin: 'org.springframework.boot'
@@ -20,7 +32,7 @@ subprojects {
 
     java {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(17)
+            languageVersion = JavaLanguageVersion.of(21)
         }
     }
 

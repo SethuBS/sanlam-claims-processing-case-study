@@ -1,8 +1,21 @@
 # End-to-End Claims Processing Solution
 
-A Java 17 and AWS-oriented implementation of the Sanlam Senior Java Developer case study.
+A Java 21 and AWS-oriented implementation of the Sanlam Senior Java Developer case study.
 
-The solution is intentionally small enough to run locally, but it demonstrates the engineering decisions I would carry into a production design: clear ownership, asynchronous processing, idempotency, transactional outbox, safe retries, payment reconciliation, auditability and SLA-aware processing.
+The solution is intentionally small enough to run locally, but it demonstrates the engineering decisions I would carry into a production design: clear ownership, asynchronous processing, idempotency, transactional outbox, safe retries, payment reconciliation, audit foundations and SLA-aware processing.
+
+## Implementation status
+
+The repository is an executable prototype of the critical workflow and reliability decisions. The AWS services described in the design document are the intended production architecture, not resources deployed by this repository.
+
+| Capability | Status |
+|---|---|
+| Claim intake, validation, idempotency and outbox | Implemented |
+| Client, policy and payment stubs | Implemented |
+| Signed callbacks, replay protection and payment reconciliation | Implemented |
+| AWS Step Functions, SQS, EventBridge and Cognito | Proposed production architecture |
+| Complete enterprise audit timeline | Future work |
+| Claims UI | Outside prototype scope |
 
 ## Problem
 
@@ -38,7 +51,7 @@ Workflow / application orchestration
 
 ## Key decisions
 
-- Java 17 and Spring Boot 3.x.
+- Java 21 and Spring Boot 3.x.
 - REST at system boundaries with versioned APIs.
 - `202 Accepted` for claim intake so the web channel does not wait for downstream systems.
 - Idempotency keys for claim submission and payment creation.
@@ -67,7 +80,7 @@ sanlam-claims-processing-case-study/
 
 ## Run locally
 
-Java 17 is required. The repository includes the Gradle wrapper configuration; if your environment does not have the wrapper script yet, run `gradle wrapper --gradle-version 8.14.3` once, then use `./gradlew`.
+Java 21 is required. The repository includes the Gradle wrapper configuration; if your environment does not have the wrapper script yet, run `gradle wrapper --gradle-version 8.14.3` once, then use `./gradlew`.
 
 ```bash
 ./gradlew clean test
@@ -134,6 +147,8 @@ Response:
 
 `POST /internal/v1/payment-status-events`
 
+The callback requires `X-Callback-Timestamp` and `X-Callback-Signature` headers. The signature is `v1=` followed by the hexadecimal HMAC-SHA256 of `<timestamp>.<raw-json-body>`, using `PAYMENT_CALLBACK_SECRET`. Timestamps older than five minutes are rejected and processed event IDs are stored to prevent replay.
+
 ## Test scenarios
 
 Run the complete automated suite (Docker is required for the Testcontainers layers):
@@ -168,6 +183,20 @@ The mocks support these behaviours through configuration:
 
 The important tests are not only happy-path HTTP tests. They include duplicate submissions, concurrent updates, payment timeouts, reconciliation and downstream outages.
 
+Validate the published API contracts:
+
+```bash
+./gradlew :claims-service:test --tests '*OpenApiContractTest'
+```
+
+Run the blocking dependency vulnerability scan:
+
+```bash
+./gradlew dependencyCheckAggregate
+```
+
+The scan fails for vulnerabilities with CVSS 7.0 or higher. Supplying an `NVD_API_KEY` is recommended to avoid public API rate limits.
+
 ## Production AWS mapping
 
 | Concern | AWS target |
@@ -187,6 +216,8 @@ The local application deliberately keeps AWS concerns behind interfaces. This ma
 ## Documentation
 
 See [`docs/claims-processing-solution.pdf`](docs/claims-processing-solution.pdf) for the full architecture and design case study.
+
+The executable Claims API contract is published at [`docs/openapi/claims-api.yaml`](docs/openapi/claims-api.yaml).
 
 ## AI use
 

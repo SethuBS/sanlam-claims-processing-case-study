@@ -1,0 +1,167 @@
+openapi: 3.0.3
+info:
+  title: Claims Processing API
+  version: 1.0.0
+  description: Executable contract for the local claims-processing prototype.
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/v1/claims:
+    post:
+      operationId: submitClaim
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitClaimRequest'
+      responses:
+        '202':
+          description: Claim accepted for asynchronous processing.
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimResponse'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+  /api/v1/claims/{claimId}:
+    parameters:
+      - $ref: '#/components/parameters/ClaimId'
+    get:
+      operationId: getClaim
+      responses:
+        '200':
+          description: Current claim state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimResponse'
+        '404':
+          $ref: '#/components/responses/Problem'
+  /api/v1/claims/{claimId}/decisions/approve:
+    parameters:
+      - $ref: '#/components/parameters/ClaimId'
+    post:
+      operationId: approveClaim
+      responses:
+        '200':
+          description: Updated claim state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimResponse'
+  /api/v1/claims/{claimId}/decisions/reject:
+    parameters:
+      - $ref: '#/components/parameters/ClaimId'
+    post:
+      operationId: rejectClaim
+      responses:
+        '200':
+          description: Updated claim state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimResponse'
+  /internal/v1/payment-status-events:
+    post:
+      operationId: receivePaymentStatus
+      parameters:
+        - name: X-Callback-Timestamp
+          in: header
+          required: true
+          schema:
+            type: string
+            description: Unix epoch timestamp in seconds.
+        - name: X-Callback-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+            pattern: '^v1=[0-9a-f]{64}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentStatusEvent'
+      responses:
+        '202':
+          description: Event authenticated and accepted idempotently.
+        '401':
+          $ref: '#/components/responses/Problem'
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    ClaimId:
+      name: claimId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Problem:
+      description: RFC 9457 problem detail.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    SubmitClaimRequest:
+      type: object
+      required: [externalReference, claimType, clientId, policyNumber, incidentDate, amount]
+      properties:
+        externalReference: {type: string, minLength: 1}
+        claimType: {type: string, enum: [DEATH, DISABILITY, STANDARD]}
+        clientId: {type: string, minLength: 1}
+        policyNumber: {type: string, minLength: 1}
+        incidentDate: {type: string, format: date}
+        amount:
+          $ref: '#/components/schemas/Money'
+    Money:
+      type: object
+      required: [currency, value]
+      properties:
+        currency: {type: string, pattern: '^[A-Z]{3}$'}
+        value: {type: number, exclusiveMinimum: true, minimum: 0}
+    ClaimResponse:
+      type: object
+      required: [claimId, externalReference, status, priority]
+      properties:
+        claimId: {type: string, format: uuid}
+        externalReference: {type: string}
+        status:
+          type: string
+          enum: [RECEIVED, VALIDATING, MANUAL_REVIEW, APPROVED, REJECTED, PAYMENT_PENDING, PAYMENT_FAILED, PAID]
+        priority: {type: string, enum: [CRITICAL, HIGH, NORMAL]}
+        paymentReference: {type: string, nullable: true}
+    PaymentStatusEvent:
+      type: object
+      required: [eventId, claimId, paymentReference, status, occurredAt]
+      properties:
+        eventId: {type: string, format: uuid}
+        claimId: {type: string, format: uuid}
+        paymentReference: {type: string, minLength: 1}
+        status: {type: string, enum: [COMPLETED, FAILED]}
+        occurredAt: {type: string, format: date-time}
+    Problem:
+      type: object
+      properties:
+        status: {type: integer}
+        title: {type: string}
+        detail: {type: string}
+        code: {type: string}

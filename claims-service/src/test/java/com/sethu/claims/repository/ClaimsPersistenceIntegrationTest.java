@@ -29,8 +29,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
 
-@SpringBootTest
+@SpringBootTest(properties = "payment.reconciliation.enabled=false")
 @Testcontainers(disabledWithoutDocker = true)
 class ClaimsPersistenceIntegrationTest extends PostgresIntegrationSupport {
 
@@ -38,6 +39,7 @@ class ClaimsPersistenceIntegrationTest extends PostgresIntegrationSupport {
     @Autowired ClaimRepository claimRepository;
     @Autowired IdempotencyRecordRepository idempotencyRepository;
     @Autowired OutboxEventRepository outboxRepository;
+    @Autowired ProcessedPaymentEventRepository processedPaymentEventRepository;
     @Autowired JdbcTemplate jdbcTemplate;
     @Autowired PlatformTransactionManager transactionManager;
 
@@ -49,6 +51,7 @@ class ClaimsPersistenceIntegrationTest extends PostgresIntegrationSupport {
     @BeforeEach
     void cleanDatabase() {
         outboxRepository.deleteAll();
+        processedPaymentEventRepository.deleteAll();
         idempotencyRepository.deleteAll();
         claimRepository.deleteAll();
     }
@@ -58,11 +61,12 @@ class ClaimsPersistenceIntegrationTest extends PostgresIntegrationSupport {
         Integer count = jdbcTemplate.queryForObject(
                 "select count(*) from information_schema.tables "
                         + "where table_schema = 'public' "
-                        + "and table_name in ('claim', 'idempotency_record', 'outbox_event')",
+                        + "and table_name in ('claim', 'idempotency_record', 'outbox_event', "
+                        + "'processed_payment_event')",
                 Integer.class
         );
 
-        assertThat(count).isEqualTo(3);
+        assertThat(count).isEqualTo(4);
     }
 
     @Test
@@ -103,6 +107,53 @@ class ClaimsPersistenceIntegrationTest extends PostgresIntegrationSupport {
         assertThatThrownBy(() -> transaction.executeWithoutResult(
                 status -> claimRepository.saveAndFlush(stale)
         )).isInstanceOf(OptimisticLockingFailureException.class);
+    }
+
+    @Test
+    void duplicatePaymentEventIsRecordedAndAppliedExactlyOnce() {
+        Claim pending = claim("WEB-CALLBACK-REPLAY");
+        pending.moveTo(ClaimStatus.VALIDATING, Instant.now());
+        pending.moveTo(ClaimStatus.APPROVED, Instant.now());
+        pending.markPaymentPending("PAY-REPLAY", Instant.now());
+        claimRepository.saveAndFlush(pending);
+        UUID eventId = UUID.randomUUID();
+
+        assertThat(claimService.handlePaymentStatusEvent(
+                eventId, pending.getId(), "PAY-REPLAY", "COMPLETED"
+        )).isTrue();
+        assertThat(claimService.handlePaymentStatusEvent(
+                eventId, pending.getId(), "PAY-REPLAY", "COMPLETED"
+        )).isFalse();
+
+        assertThat(processedPaymentEventRepository.count()).isEqualTo(1);
+        assertThat(claimRepository.findById(pending.getId()).orElseThrow().getStatus())
+                .isEqualTo(ClaimStatus.PAID);
+    }
+
+    @Test
+    void outOfOrderCallbackCanBeRetriedAfterTheAnalystApprovesTheClaim() {
+        Claim manual = claim("WEB-ANALYST-CALLBACK");
+        manual.moveTo(ClaimStatus.VALIDATING, Instant.now());
+        manual.moveTo(ClaimStatus.MANUAL_REVIEW, Instant.now());
+        claimRepository.saveAndFlush(manual);
+        UUID eventId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> claimService.handlePaymentStatusEvent(
+                eventId, manual.getId(), "PAY-AFTER-APPROVAL", "COMPLETED"
+        )).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("not waiting for payment");
+        assertThat(processedPaymentEventRepository.findById(eventId)).isEmpty();
+
+        when(paymentSystemClient.createPayment(
+                manual.getId(), manual.getAmount(), manual.getCurrency()
+        )).thenReturn(new PaymentSystemClient.PaymentAccepted("PAY-AFTER-APPROVAL", "ACCEPTED"));
+        claimService.approve(manual.getId());
+
+        assertThat(claimService.handlePaymentStatusEvent(
+                eventId, manual.getId(), "PAY-AFTER-APPROVAL", "COMPLETED"
+        )).isTrue();
+        assertThat(claimRepository.findById(manual.getId()).orElseThrow().getStatus())
+                .isEqualTo(ClaimStatus.PAID);
     }
 
     private ClaimCommands.SubmitClaim command(String key, String reference) {

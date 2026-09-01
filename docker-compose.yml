@@ -31,7 +31,8 @@ services:
     build: ./mock-payment-system
     environment:
       SERVER_PORT: 8083
-      CLAIMS_CALLBACK_URL: http://host.docker.internal:8080/internal/v1/payment-status-events
+      CLAIMS_CALLBACK_URL: http://claims-service:8080/internal/v1/payment-status-events
+      PAYMENT_CALLBACK_SECRET: ${PAYMENT_CALLBACK_SECRET:-local-development-callback-secret}
     ports:
       - "8083:8083"
 
@@ -54,5 +55,6 @@ services:
       CLIENT_REGISTRY_BASE_URL: http://mock-client-registry:8081
       POLICY_MANAGER_BASE_URL: http://mock-policy-manager:8082
       PAYMENT_SYSTEM_BASE_URL: http://mock-payment-system:8083
+      PAYMENT_CALLBACK_SECRET: ${PAYMENT_CALLBACK_SECRET:-local-development-callback-secret}
     ports:
       - "8080:8080"

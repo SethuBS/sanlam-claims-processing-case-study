@@ -40,4 +40,30 @@ class OpenApiContractTest {
                 Arguments.of("payment-system.yaml", "/api/v1/payment-requests", "202")
         );
     }
+
+    @org.junit.jupiter.api.Test
+    void claimsApiContractMatchesTheImplementedEndpoints() {
+        URL url = getClass().getResource("/claims-api.yaml");
+        assertThat(url).isNotNull();
+
+        SwaggerParseResult result = new OpenAPIParser().readLocation(
+                url.toExternalForm(), null, new ParseOptions()
+        );
+
+        assertThat(result.getMessages()).isEmpty();
+        OpenAPI api = result.getOpenAPI();
+        assertThat(api.getPaths()).containsKeys(
+                "/api/v1/claims",
+                "/api/v1/claims/{claimId}",
+                "/api/v1/claims/{claimId}/decisions/approve",
+                "/api/v1/claims/{claimId}/decisions/reject",
+                "/internal/v1/payment-status-events"
+        );
+        assertThat(api.getPaths().get("/api/v1/claims").getPost().getResponses())
+                .containsKey("202");
+        assertThat(api.getPaths().get("/internal/v1/payment-status-events")
+                .getPost().getParameters())
+                .extracting(parameter -> parameter.getName())
+                .containsExactlyInAnyOrder("X-Callback-Timestamp", "X-Callback-Signature");
+    }
 }

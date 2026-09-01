@@ -2,7 +2,7 @@ name: Security Checks
 
 on:
   push:
-    branches: [ main ]
+    branches: [ development ]
   pull_request:
 
 jobs:
@@ -13,7 +13,24 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
           cache: gradle
-      - run: ./gradlew dependencyCheckAnalyze
-        continue-on-error: true
+
+      - name: Restore dependency-check vulnerability database
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/dependency-check-data
+          key: ${{ runner.os }}-dependency-check-v12-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-dependency-check-v12-
+      - name: Scan runtime dependencies
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: bash ./gradlew dependencyCheckAggregate
+
+      - name: Upload dependency-check reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-reports
+          path: build/reports/
