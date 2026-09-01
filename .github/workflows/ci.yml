@@ -2,33 +2,70 @@ name: CI
 
 on:
   push:
-    branches: [development]
+    branches:
+      - development
+      - 'feature/**'
   pull_request:
-    branches: [development]
+    branches:
+      - development
   workflow_dispatch:
 
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  TEST_POSTGRES_IMAGE: postgres:16-alpine
+  TEST_POSTGRES_STARTUP_TIMEOUT: PT2M
+
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
+  build-test-and-image:
+    name: Build, test, and Docker image
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
 
     steps:
-      - name: Checkout
+      - name: Check out repository
         uses: actions/checkout@v6
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v5
 
       - name: Set up Java 21
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
-          cache: gradle
 
-      - name: Build, format-check and test
-        run: bash ./gradlew clean check build --no-daemon
+      - name: Set up Gradle dependency cache
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Run tests
+        run: ./gradlew clean test --no-daemon --stacktrace
+
+      - name: Run verification checks
+        run: ./gradlew check --no-daemon --stacktrace
+
+      - name: Build application jars
+        run: ./gradlew bootJar --no-daemon --stacktrace
+
+      - name: Build Docker image
+        run: docker build --pull -t sanlam-claims-processing-case-study:ci claims-service
+
+      - name: Upload Gradle reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: gradle-reports-${{ github.run_attempt }}
+          path: |
+            **/build/reports/
+            **/build/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
