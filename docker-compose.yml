@@ -32,6 +32,7 @@ services:
     environment:
       SERVER_PORT: 8083
       CLAIMS_CALLBACK_URL: http://claims-service:8080/internal/v1/payment-status-events
+      PAYMENT_BEHAVIOUR: ${PAYMENT_BEHAVIOUR:-SUCCESS}
       PAYMENT_CALLBACK_SECRET: ${PAYMENT_CALLBACK_SECRET:-local-development-callback-secret}
     ports:
       - "8083:8083"
