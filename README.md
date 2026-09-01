@@ -1,5 +1,7 @@
 # End-to-End Claims Processing Solution
 
+[![CI](https://github.com/SethuBS/sanlam-claims-processing-case-study/actions/workflows/ci.yml/badge.svg?branch=development)](https://github.com/SethuBS/sanlam-claims-processing-case-study/actions/workflows/ci.yml?query=branch%3Adevelopment)
+
 A Java 21 and AWS-oriented implementation of the Sanlam Senior Java Developer case study.
 
 The solution is intentionally small enough to run locally, but it demonstrates the engineering decisions I would carry into a production design: clear ownership, asynchronous processing, idempotency, transactional outbox, safe retries, payment reconciliation, audit foundations and SLA-aware processing.
