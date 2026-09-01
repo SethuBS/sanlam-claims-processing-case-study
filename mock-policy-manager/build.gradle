@@ -3,5 +3,5 @@ dependencies {
 }
 
 springBoot {
-    mainClass = 'com.sethu.mock.policy.PolicyManagerApplication'
+    mainClass = 'com.sanlam.mock.policy.PolicyManagerApplication'
 }

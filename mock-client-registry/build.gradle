@@ -3,5 +3,5 @@ dependencies {
 }
 
 springBoot {
-    mainClass = 'com.sethu.mock.client.ClientRegistryApplication'
+    mainClass = 'com.sanlam.mock.client.ClientRegistryApplication'
 }

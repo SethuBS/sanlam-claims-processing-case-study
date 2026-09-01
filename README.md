@@ -163,6 +163,13 @@ On Windows:
 .\gradlew.bat clean test build
 ```
 
+Java source uses four-space indentation and next-line (Allman) braces. Spotless applies the shared Eclipse formatter profile to every module, and `check` fails when Java source is not formatted.
+
+```powershell
+.\gradlew.bat spotlessApply
+.\gradlew.bat spotlessCheck
+```
+
 Run the Compose-based end-to-end scenarios:
 
 ```powershell
