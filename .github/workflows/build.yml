@@ -20,4 +20,4 @@ jobs:
           cache: gradle
 
       - name: Build and test
-        run: ./gradlew clean test build
+        run: bash ./gradlew clean test build

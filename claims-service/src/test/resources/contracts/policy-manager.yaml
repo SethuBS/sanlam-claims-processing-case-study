@@ -1,0 +1,40 @@
+openapi: 3.0.3
+info:
+  title: Policy Manager eligibility API
+  version: 1.0.0
+paths:
+  /api/v1/claim-eligibility-checks:
+    post:
+      operationId: checkEligibility
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EligibilityRequest'
+      responses:
+        '200':
+          description: Eligibility result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EligibilityResult'
+components:
+  schemas:
+    EligibilityRequest:
+      type: object
+      required: [policyNumber, amount]
+      properties:
+        policyNumber: {type: string}
+        amount: {type: number}
+    EligibilityResult:
+      type: object
+      required: [validationReference, eligible, manualReviewRequired, ruleVersion, reasonCodes]
+      properties:
+        validationReference: {type: string}
+        eligible: {type: boolean}
+        manualReviewRequired: {type: boolean}
+        ruleVersion: {type: string}
+        reasonCodes:
+          type: array
+          items: {type: string}

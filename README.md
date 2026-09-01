@@ -136,6 +136,26 @@ Response:
 
 ## Test scenarios
 
+Run the complete automated suite (Docker is required for the Testcontainers layers):
+
+```bash
+./gradlew clean test build
+```
+
+On Windows:
+
+```powershell
+.\gradlew.bat clean test build
+```
+
+Run the Compose-based end-to-end scenarios:
+
+```powershell
+.\scripts\e2e.ps1
+```
+
+Use `-KeepRunning` to leave the services available on ports 8080-8083 and PostgreSQL on 5432 after the checks.
+
 The mocks support these behaviours through configuration:
 
 - `SUCCESS`

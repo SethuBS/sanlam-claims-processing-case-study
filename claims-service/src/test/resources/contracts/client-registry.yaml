@@ -1,0 +1,38 @@
+openapi: 3.0.3
+info:
+  title: Client Registry validation API
+  version: 1.0.0
+paths:
+  /api/v1/client-validations:
+    post:
+      operationId: validateClient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientValidationRequest'
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientValidationResult'
+components:
+  schemas:
+    ClientValidationRequest:
+      type: object
+      required: [clientId]
+      properties:
+        clientId: {type: string}
+    ClientValidationResult:
+      type: object
+      required: [validationReference, valid, clientStatus, reasonCodes]
+      properties:
+        validationReference: {type: string}
+        valid: {type: boolean}
+        clientStatus: {type: string}
+        reasonCodes:
+          type: array
+          items: {type: string}

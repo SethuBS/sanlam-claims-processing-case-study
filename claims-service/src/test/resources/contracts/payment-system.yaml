@@ -1,0 +1,41 @@
+openapi: 3.0.3
+info:
+  title: Payment System request API
+  version: 1.0.0
+paths:
+  /api/v1/payment-requests:
+    post:
+      operationId: createPayment
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        '202':
+          description: Payment accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentAccepted'
+components:
+  schemas:
+    PaymentRequest:
+      type: object
+      required: [claimId, amount, currency]
+      properties:
+        claimId: {type: string, format: uuid}
+        amount: {type: number}
+        currency: {type: string, minLength: 3, maxLength: 3}
+    PaymentAccepted:
+      type: object
+      required: [paymentReference, status]
+      properties:
+        paymentReference: {type: string}
+        status: {type: string}

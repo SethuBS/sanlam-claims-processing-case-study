@@ -7,3 +7,6 @@ out/
 .DS_Store
 .env
 *.log
+
+# The Gradle wrapper JAR must be committed so builds work on fresh clones.
+!gradle/wrapper/gradle-wrapper.jar

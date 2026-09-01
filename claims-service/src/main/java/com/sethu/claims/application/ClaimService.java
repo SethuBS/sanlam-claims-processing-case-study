@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.Optional;
@@ -33,6 +34,7 @@ public class ClaimService {
     private final PolicyManagerClient policyManagerClient;
     private final PaymentSystemClient paymentSystemClient;
     private final ObjectMapper objectMapper;
+    private final Clock clock;
 
     public ClaimService(
             ClaimRepository claimRepository,
@@ -41,7 +43,8 @@ public class ClaimService {
             ClientRegistryClient clientRegistryClient,
             PolicyManagerClient policyManagerClient,
             PaymentSystemClient paymentSystemClient,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            Clock clock
     ) {
         this.claimRepository = claimRepository;
         this.idempotencyRecordRepository = idempotencyRecordRepository;
@@ -50,6 +53,7 @@ public class ClaimService {
         this.policyManagerClient = policyManagerClient;
         this.paymentSystemClient = paymentSystemClient;
         this.objectMapper = objectMapper;
+        this.clock = clock;
     }
 
     @Transactional
@@ -68,7 +72,7 @@ public class ClaimService {
         }
 
         try {
-            Instant now = Instant.now();
+            Instant now = clock.instant();
             Claim claim = Claim.receive(
                     UUID.randomUUID(),
                     command.externalReference(),
@@ -120,11 +124,11 @@ public class ClaimService {
             return claim;
         }
 
-        claim.moveTo(ClaimStatus.VALIDATING, Instant.now());
+        claim.moveTo(ClaimStatus.VALIDATING, clock.instant());
 
         var client = clientRegistryClient.validate(claim.getClientId());
         if (client == null || !client.valid()) {
-            claim.moveTo(ClaimStatus.REJECTED, Instant.now());
+            claim.moveTo(ClaimStatus.REJECTED, clock.instant());
             return claimRepository.save(claim);
         }
 
@@ -134,23 +138,23 @@ public class ClaimService {
         );
 
         if (eligibility == null || !eligibility.eligible()) {
-            claim.moveTo(ClaimStatus.REJECTED, Instant.now());
+            claim.moveTo(ClaimStatus.REJECTED, clock.instant());
             return claimRepository.save(claim);
         }
 
         if (eligibility.manualReviewRequired()) {
-            claim.moveTo(ClaimStatus.MANUAL_REVIEW, Instant.now());
+            claim.moveTo(ClaimStatus.MANUAL_REVIEW, clock.instant());
             return claimRepository.save(claim);
         }
 
-        claim.moveTo(ClaimStatus.APPROVED, Instant.now());
+        claim.moveTo(ClaimStatus.APPROVED, clock.instant());
         PaymentSystemClient.PaymentAccepted payment = paymentSystemClient.createPayment(
                 claim.getId(),
                 claim.getAmount(),
                 claim.getCurrency()
         );
 
-        claim.markPaymentPending(payment.paymentReference(), Instant.now());
+        claim.markPaymentPending(payment.paymentReference(), clock.instant());
         return claimRepository.save(claim);
     }
 
@@ -159,13 +163,13 @@ public class ClaimService {
         Claim claim = claimRepository.findById(claimId)
                 .orElseThrow(() -> new IllegalArgumentException("Claim not found: " + claimId));
 
-        claim.moveTo(ClaimStatus.APPROVED, Instant.now());
+        claim.moveTo(ClaimStatus.APPROVED, clock.instant());
         PaymentSystemClient.PaymentAccepted payment = paymentSystemClient.createPayment(
                 claim.getId(),
                 claim.getAmount(),
                 claim.getCurrency()
         );
-        claim.markPaymentPending(payment.paymentReference(), Instant.now());
+        claim.markPaymentPending(payment.paymentReference(), clock.instant());
         return claimRepository.save(claim);
     }
 
@@ -173,7 +177,7 @@ public class ClaimService {
     public Claim reject(UUID claimId) {
         Claim claim = claimRepository.findById(claimId)
                 .orElseThrow(() -> new IllegalArgumentException("Claim not found: " + claimId));
-        claim.moveTo(ClaimStatus.REJECTED, Instant.now());
+        claim.moveTo(ClaimStatus.REJECTED, clock.instant());
         return claimRepository.save(claim);
     }
 
@@ -181,7 +185,7 @@ public class ClaimService {
     public Claim markPaid(UUID claimId, String paymentReference) {
         Claim claim = claimRepository.findById(claimId)
                 .orElseThrow(() -> new IllegalArgumentException("Claim not found: " + claimId));
-        claim.markPaid(paymentReference, Instant.now());
+        claim.markPaid(paymentReference, clock.instant());
         return claimRepository.save(claim);
     }
 

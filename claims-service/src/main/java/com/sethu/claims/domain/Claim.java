@@ -11,6 +11,7 @@ import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -103,6 +104,19 @@ public class Claim {
             String currency,
             Instant receivedAt
     ) {
+        requireText(externalReference, "externalReference");
+        requireText(clientId, "clientId");
+        requireText(policyNumber, "policyNumber");
+        Objects.requireNonNull(claimType, "claimType must not be null");
+        Objects.requireNonNull(incidentDate, "incidentDate must not be null");
+        if (amount == null || amount.signum() <= 0) {
+            throw new IllegalArgumentException("amount must be positive");
+        }
+        if (currency == null || !currency.matches("[A-Z]{3}")) {
+            throw new IllegalArgumentException("currency must be a three-letter uppercase code");
+        }
+        Objects.requireNonNull(receivedAt, "receivedAt must not be null");
+
         ClaimPriority priority = switch (claimType) {
             case DEATH -> ClaimPriority.CRITICAL;
             case DISABILITY -> ClaimPriority.HIGH;
@@ -179,6 +193,12 @@ public class Claim {
         throw new IllegalStateException(
                 "Invalid claim transition from " + status + " to " + nextStatus
         );
+    }
+
+    private static void requireText(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " must not be blank");
+        }
     }
 
     public UUID getId() { return id; }
