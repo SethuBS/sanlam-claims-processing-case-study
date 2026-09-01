@@ -7,6 +7,8 @@ out/
 .DS_Store
 .env
 *.log
+tmp/
+__pycache__/
 
 # The Gradle wrapper JAR must be committed so builds work on fresh clones.
 !gradle/wrapper/gradle-wrapper.jar

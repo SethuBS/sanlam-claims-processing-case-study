@@ -222,7 +222,17 @@ The local application deliberately keeps AWS concerns behind interfaces. This ma
 
 ## Documentation
 
-See [`docs/claims-processing-solution.pdf`](docs/claims-processing-solution.pdf) for the full architecture and design case study.
+See [`docs/claims-processing-solution.pdf`](docs/claims-processing-solution.pdf) for the full architecture and design case study. This is the canonical submission document; use the same file when sharing the case study outside GitHub.
+
+### Regenerating the case-study PDF
+
+The PDF is generated from the versioned layout and vector artwork sources in `docs/source`. From the repository root, run:
+
+```powershell
+python docs/source/generate_pdf.py docs/source/claims-processing-layout.json docs/source/claims-processing-artwork.bin docs/claims-processing-solution.pdf
+```
+
+The generator rebuilds one searchable text layer, adds the implementation-status table and renders the page-22 samples as illustrative production-oriented code.
 
 The executable Claims API contract is published at [`docs/openapi/claims-api.yaml`](docs/openapi/claims-api.yaml).
 
